@@ -10,7 +10,7 @@
 #define INA 6 // motor turn CW 
 #define INB 7 // motor turn CCW
 #define end_1 4 // end switch CW
-#define end_2 8 // end switch CCW
+#define end_2 7 // end switch CCW
 #include <digitalWriteFast.h>
 #include <Wire.h>
 
@@ -128,7 +128,7 @@ byte slave_num = 1; // numero de Escalvo
   T=millis() - pid_time;
   float Kz = T/1000.0;
    
-  if(digitalRead(end_2)&& digitalRead(end_1))
+  if(analogRead(end_2)>100 && analogRead(end_1)>100)
   
     error_prev += error; 
   else
