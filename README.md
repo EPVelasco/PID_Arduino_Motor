@@ -11,3 +11,9 @@ This repository presents a code designed in Arduino for bidirectional PID contro
 <p float="center">
   <img src="/images/diagram.png" width="720"  />
  </p>
+ 
+ ## Flowchart
+<p float="center">
+  <img src="/images/flowchart.png" width="720"  />
+ </p>
+
