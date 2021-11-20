@@ -1,6 +1,8 @@
 // Autor: Edison P. Velasco Sánchez
 // email: evs25@alu.ua.es 
 
+////////////////////////////////////////////////////////Variable initialization///////////////////////////////////////////////////////////
+
 #define C1 0  // interruption 0
 #define C2 1  // interruption 1
 #define encoder_A 2  // encoder A physically connected to D2 ***** this data is not used in interruptions
@@ -32,7 +34,7 @@ double cv_curr = 0;         //current Control value
 double cv = 0;            
 
 unsigned long num_encod = 220;  // number of encoder slots
-unsigned long timeold = 0;      // Tiempo 
+unsigned long timeold = 0;      // previuos time 
 unsigned long time_int1 = 0;    // time of first  interruption
 unsigned long time_int2 = 0;    // time of second interruption 
 unsigned long time_rest = 0;
@@ -41,10 +43,14 @@ static volatile unsigned long debounce = 0; // Bounce time.
 float _RightEncoderTicks = 0, _RightEncoderTicks_ant=0;
 bool _RightEncoderBSet;
 
-byte m_velocidad = 100 ;  // motor velocidad
-byte slave_num = 1; // numero de Escalvo
+byte m_velocidad = 100 ;  // motor velocity
+byte slave_num = 1; // number of I2C Slave
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
  void setup ( ) {
   Serial.begin(9600); // Serial port speed setting
+  ////////////Port configuration////////////
   pinMode(encoder_A, INPUT); 
   pinMode(encoder_B, INPUT); 
   pinMode(end_1, INPUT); 
@@ -56,33 +62,39 @@ byte slave_num = 1; // numero de Escalvo
   digitalWrite(EN,HIGH);  
   attachInterrupt(C1, detection_c1, FALLING);// an external interrupt is programmed on pin 2, whenever there is a change from high to low
   digitalWrite(INA,HIGH);
-
+  /////////////////////////////////////////
+  
+  ////////////////I2C configuration////////
+  
   // We connect this device to the I2C bus with address 1 (Slave 1)
-  Wire.begin(slave_num);
- 
+  Wire.begin(slave_num); 
   // Register the event when receiving data
   Wire.onReceive(i2cdata);
   Wire.onRequest(requestEvent); 
+  
+  ///////////////////////////////////////
  }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////
  void loop ( )
  {
   if(millis() - timeold  > 50){
     noInterrupts() ; // stop interruptions
-    rpm_curr = (60.0*1000.0 / num_encod )/ (millis() - timeold)* _RightEncoderTicks; // calculation of revolutions per minute
+    rpm_curr = (60.0*1000.0 / num_encod )/ (millis() - timeold)* _RightEncoderTicks; // revolutions per minute estimated
     rpm = a*rpm_prev+b*rpm_curr; //RPM filter
     rpm_prev = rpm;
     timeold = millis(); 
    //Serial.print("Pulses: ");
    //Serial.println(pulses); 
        
-    _RightEncoderTicks = 0;
-    cv_curr = PID_PWM (rpm,Setpoint,1.95,0.60,0.95); // PID to tune
+    _RightEncoderTicks = 0; // Reset encoder counts
+    cv_curr = PID_PWM (rpm,Setpoint,1.95,0.60,0.95); // PID to tune  (process value, Set point , Kp , Ki, Kd)
     cv = 0.9*cv_prev+0.1*cv_curr; // complementary filter 
     cv_prev = cv;   
 
     //if (!digitalRead(end_2)&& cv>0 && digitalRead(end_1) || digitalRead(end_2)&& !digitalRead(end_1)&& cv<0){
-  if (analogRead(end_2)<100 && cv>0 || analogRead(end_1)<100 && cv<0){  
+  if (analogRead(end_2)<100 && cv>0 || analogRead(end_1)<100 && cv<0){   /// Limit switch detection . The switches are on an analog port, this way no anti-bounce function is needed)
       //Stop the motor 
       digitalWrite(EN,LOW);
       digitalWrite(INA,0);
@@ -102,10 +114,13 @@ byte slave_num = 1; // numero de Escalvo
   }  
 
 //SERIAL TO ADJUST THE MOTOR SPEED
+// uncomment this section to have serial communication. (The setpoint value is 0 to 150, these values correspond to -75 to 75 RPM)
+  
   /*
   if(Serial.available()>0){  
       int inChar = Serial.parseInt();       
-      Setpoint= (int)(inChar);       
+      Setpoint= (int)(inChar);    
+      Setpoint = Setpoint-75;
   }
    Serial.print(Setpoint);
    Serial.print(',');
@@ -117,6 +132,9 @@ byte slave_num = 1; // numero de Escalvo
   
  } 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////PID function////////////////////////////////////////////////////
 
  float PID_PWM(float pv, float sp, float Kp, float Ki,float Kd){
 
@@ -156,8 +174,10 @@ byte slave_num = 1; // numero de Escalvo
   return (cv);
   
  }
+ ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  void detection_c1()
+////////////////////////////////////////////////interrupt functions//////////////////////////////////////////////
+ void detection_c1()
     {  
       _RightEncoderBSet = digitalReadFast(encoder_B);   // read the input pin
       #ifdef RightEncoderIsReversed
@@ -166,7 +186,10 @@ byte slave_num = 1; // numero de Escalvo
          _RightEncoderTicks -= _RightEncoderBSet ? -1 : +1;
       #endif
   }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////I2C functions///////////////////////////////////////////////////
  void i2cdata() { 
       int pinOut = 0;
       int estado = 0;
@@ -191,3 +214,4 @@ void requestEvent(){
   else
     Wire.write(1);   
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
