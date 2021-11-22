@@ -11,8 +11,8 @@
 #define PWM 9 // motor control pwm (0 a 255)
 #define INA 6 // motor turn CW 
 #define INB 7 // motor turn CCW
-#define end_1 4 // end switch CW
-#define end_2 7 // end switch CCW
+#define end_1 6 // end switch CW in Analog port A6
+#define end_2 7 // end switch CCW in Analog port A7
 #include <digitalWriteFast.h>
 #include <Wire.h>
 
